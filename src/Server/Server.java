@@ -24,6 +24,7 @@ public class Server extends Thread{
 
     public void run()
     {
+    	System.out.println("Start Discovery....");
         try {
             //Keep a socket open to listen to all the UDP trafic that is destined for this port
             socket = new DatagramSocket(DEFAULT_PORT, InetAddress.getByName("0.0.0.0"));

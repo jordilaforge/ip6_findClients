@@ -32,7 +32,9 @@ public class Client extends Thread{
     
     public void run()
     {
+    	System.out.println("Start Discovery....");
     	try {
+    		 
     		  //Open a random port to send the package
     		  socket = new DatagramSocket();
     		  socket.setBroadcast(true);
@@ -48,7 +50,7 @@ public class Client extends Thread{
     		  }
 
     		  // Broadcast the message over all the network interfaces
-    		  Enumeration interfaces = NetworkInterface.getNetworkInterfaces();
+    		  Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
     		  while (interfaces.hasMoreElements()) {
     		    NetworkInterface networkInterface = (NetworkInterface) interfaces.nextElement();
 
