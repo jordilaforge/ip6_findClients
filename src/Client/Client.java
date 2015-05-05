@@ -1,16 +1,19 @@
 package Client;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
 
-public class Client {
+public class Client extends Thread{
 	
 	
-	private String hostname= "localhost";
-    private int port=1234;
-    private InetAddress host;
+    private static final int DEFAULT_PORT = 1234;
+	private static final int size=15000;
     private DatagramSocket socket;
     DatagramPacket packet;
     private String ownIP;
@@ -19,10 +22,9 @@ public class Client {
     	try {
 			this.ownIP =  InetAddress.getLocalHost().toString();
 		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-    	System.out.println("IP-Server: "+this.ownIP);
+    	System.out.println("IP-Client: "+this.ownIP);
     }
 
     
@@ -30,23 +32,69 @@ public class Client {
     
     public void run()
     {
-        try
-        {
-            host = InetAddress.getByName(hostname);
-            socket = new DatagramSocket (null);
-            packet=new DatagramPacket (new byte[100], 0,host, port);
-            socket.send (packet);
-            packet.setLength(100);
-            socket.receive (packet);
-            socket.close ();
-            byte[] data = packet.getData ();
-            String time=new String(data);  // convert byte array data into string
-            System.out.println(time);
-        }
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
+    	try {
+    		  //Open a random port to send the package
+    		  socket = new DatagramSocket();
+    		  socket.setBroadcast(true);
+
+    		  byte[] sendData = "DISCOVER_FUIFSERVER_REQUEST".getBytes();
+
+    		  //Try the 255.255.255.255 first
+    		  try {
+    		    DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName("255.255.255.255"), DEFAULT_PORT);
+    		    socket.send(sendPacket);
+    		    System.out.println(getClass().getName() + ">>> Request packet sent to: 255.255.255.255 (DEFAULT)");
+    		  } catch (Exception e) {
+    		  }
+
+    		  // Broadcast the message over all the network interfaces
+    		  Enumeration interfaces = NetworkInterface.getNetworkInterfaces();
+    		  while (interfaces.hasMoreElements()) {
+    		    NetworkInterface networkInterface = (NetworkInterface) interfaces.nextElement();
+
+    		    if (networkInterface.isLoopback() || !networkInterface.isUp()) {
+    		      continue; // Don't want to broadcast to the loopback interface
+    		    }
+
+    		    for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()) {
+    		      InetAddress broadcast = interfaceAddress.getBroadcast();
+    		      if (broadcast == null) {
+    		        continue;
+    		      }
+
+    		      // Send the broadcast package!
+    		      try {
+    		        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, broadcast, 8888);
+    		        socket.send(sendPacket);
+    		      } catch (Exception e) {
+    		      }
+
+    		      System.out.println(getClass().getName() + ">>> Request packet sent to: " + broadcast.getHostAddress() + "; Interface: " + networkInterface.getDisplayName());
+    		    }
+    		  }
+
+    		  System.out.println(getClass().getName() + ">>> Done looping over all network interfaces. Now waiting for a reply!");
+
+    		  //Wait for a response
+    		  byte[] recvBuf = new byte[size];
+    		  DatagramPacket receivePacket = new DatagramPacket(recvBuf, recvBuf.length);
+    		  socket.receive(receivePacket);
+
+    		  //We have a response
+    		  System.out.println(getClass().getName() + ">>> Broadcast response from server: " + receivePacket.getAddress().getHostAddress());
+
+    		  //Check if the message is correct
+    		  String message = new String(receivePacket.getData()).trim();
+    		  if (message.equals("DISCOVER_FUIFSERVER_RESPONSE")) {
+    		    //DO SOMETHING WITH THE SERVER'S IP (for example, store it in your controller)
+    		    System.out.println(receivePacket.getAddress());
+    		  }
+
+    		  //Close the port!
+    		  socket.close();
+    		} catch (IOException ex) {
+    		 	ex.printStackTrace();
+    		}
     }
     
     
