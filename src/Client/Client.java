@@ -1,6 +1,8 @@
 package Client;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -17,6 +19,7 @@ public class Client extends Thread{
     private DatagramSocket socket;
     DatagramPacket packet;
     private String ownIP;
+    public String serverIP;
     
     public Client(){
     	try {
@@ -89,7 +92,9 @@ public class Client extends Thread{
     		  String message = new String(receivePacket.getData()).trim();
     		  if (message.equals("DISCOVER_FUIFSERVER_RESPONSE")) {
     		    //DO SOMETHING WITH THE SERVER'S IP (for example, store it in your controller)
-    		    System.out.println(receivePacket.getAddress());
+    			serverIP = receivePacket.getAddress().toString().replace("/", "");
+    		    System.out.println(serverIP);
+    		    writeServerIP(serverIP);
     		  }
 
     		  //Close the port!
@@ -98,6 +103,20 @@ public class Client extends Thread{
     		 	ex.printStackTrace();
     		}
     }
+
+
+
+
+	private void writeServerIP(String serverIP) {
+		try {
+			PrintWriter out = new PrintWriter("serverIP.txt");
+			out.println(serverIP);
+			out.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		
+	}
     
     
 }
